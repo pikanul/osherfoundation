@@ -1,0 +1,22 @@
+{
+  "resources/js/app.jsx": {
+    "file": "assets/app-DNnElTng.js",
+    "name": "app",
+    "src": "resources/js/app.jsx",
+    "isEntry": true,
+    "css": [
+      "assets/app-DxyaR1gc.css"
+    ],
+    "assets": [
+      "assets/footer bg-DayCWnUl.jpg"
+    ]
+  },
+  "resources/js/assets/image/oshe.jpg": {
+    "file": "assets/oshe-B5QLDf6E.jpg",
+    "src": "resources/js/assets/image/oshe.jpg"
+  },
+  "resources/js/assets/logo/footer bg.jpg": {
+    "file": "assets/footer bg-DayCWnUl.jpg",
+    "src": "resources/js/assets/logo/footer bg.jpg"
+  }
+}

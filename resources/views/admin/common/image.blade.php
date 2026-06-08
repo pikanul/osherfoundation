@@ -1,0 +1,1 @@
+<img src="{{ asset('/upload/'.$row->image) }}" alt="{{ $row->image }}" style="height:80px;width:120px; padding:5px"/>

@@ -1,0 +1,81 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+.custom-max-width {
+    max-width: 100%;
+}
+
+span {
+    max-width: 100%;
+}
+
+.rich-content {
+    font-size: 1rem !important;
+    line-height: 1.75 !important;
+    color: #334155 !important;
+    overflow-wrap: anywhere;
+}
+
+.rich-content :where(*) {
+    color: inherit !important;
+    max-width: 100%;
+}
+
+.rich-content :where(p, li, figcaption, td, th, blockquote, span, div) {
+    font-size: 1rem !important;
+    line-height: 1.75 !important;
+    color: inherit !important;
+}
+
+.rich-content :where(h1, h2, h3, h4, h5, h6) {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+}
+
+.rich-content :where(ul, ol) {
+    margin: 0.75rem 1rem;
+    padding-left: 1.25rem;
+}
+
+.rich-content :where(ul) {
+    list-style: disc !important;
+}
+
+.rich-content :where(ol) {
+    list-style: decimal !important;
+}
+
+.rich-content :where(ul ul) {
+    list-style: circle !important;
+}
+
+.rich-content :where(ul ul ul) {
+    list-style: square !important;
+}
+
+.rich-content :where(li) {
+    display: list-item !important;
+}
+
+.rich-content :where(li)::marker {
+    color: #0f172a;
+}
+
+
+.rich-content :where(img, video, iframe) {
+    display: block !important;
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 0.75rem;
+}
+
+.rich-content :where(table) {
+    width: 100%;
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+}
+
