@@ -1,22 +1,18 @@
 {
   "resources/js/app.jsx": {
-    "file": "assets/app-DNnElTng.js",
+    "file": "assets/app-D9j1LBdU.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
     "css": [
-      "assets/app-DxyaR1gc.css"
+      "assets/app-BwO8XNns.css"
     ],
     "assets": [
-      "assets/footer bg-DayCWnUl.jpg"
+      "assets/footer-workers-hands-DfbAaAcU.png"
     ]
   },
-  "resources/js/assets/image/oshe.jpg": {
-    "file": "assets/oshe-B5QLDf6E.jpg",
-    "src": "resources/js/assets/image/oshe.jpg"
-  },
-  "resources/js/assets/logo/footer bg.jpg": {
-    "file": "assets/footer bg-DayCWnUl.jpg",
-    "src": "resources/js/assets/logo/footer bg.jpg"
+  "resources/js/assets/logo/footer-workers-hands.png": {
+    "file": "assets/footer-workers-hands-DfbAaAcU.png",
+    "src": "resources/js/assets/logo/footer-workers-hands.png"
   }
 }

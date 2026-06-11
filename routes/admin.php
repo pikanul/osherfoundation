@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\ContactConroller;
+use App\Http\Controllers\Admin\PartnerInquiryController;
 use App\Http\Controllers\Admin\CareearConroller;
 use App\Http\Controllers\Admin\CareearJobsConroller;
 use App\Http\Controllers\Admin\ContentController;
@@ -112,6 +113,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => 'auth:admin
 
     Route::resource('contacts', ContactConroller::class);
     Route::post('contacts/mark_as_read', [ContactConroller::class, 'mark_as_read'])->name('contacts.mark_as_read');
+    Route::resource('partner-inquiries', PartnerInquiryController::class)->only(['index', 'show', 'destroy']);
+    Route::post('partner-inquiries/mark_as_read', [PartnerInquiryController::class, 'mark_as_read'])->name('partner-inquiries.mark_as_read');
 
     Route::resource('careear_jobs', CareearJobsConroller::class);
     Route::resource('careears', CareearConroller::class);

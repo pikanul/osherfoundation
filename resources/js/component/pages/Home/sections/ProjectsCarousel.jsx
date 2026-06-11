@@ -241,4 +241,3 @@ export default function ProjectsCarousel({ slides = [], ajaxUrl = null }) {
         </section>
     );
 }
-

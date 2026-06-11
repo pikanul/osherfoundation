@@ -1,31 +1,44 @@
 import React, { useMemo } from "react";
 import { usePage } from "@inertiajs/react";
 
-import oshe from "../../../assets/image/oshe.jpg";
-
 import HeroBanner from "./sections/HeroBanner";
 import MissionVision from "./sections/MissionVision";
-import WorkersPower from "./sections/WorkersPower";
-import EoshVictims from "./sections/EoshVictims";
-import ProjectsCarousel from "./sections/ProjectsCarousel";
+import JourneyTimeline from "./sections/JourneyTimeline";
+import OurImpactHome from "./sections/OurImpactHome";
 import Partners from "./sections/Partners";
-import EventsCTA from "./sections/EventsCTA";
 import VideoGallery from "./sections/VideoGallery";
 import PhotoGallerySection from "./sections/PhotoGallerySection";
 
 export default function HomeContent() {
-    const { app_url, banner_image_heor } = usePage().props;
+    const {
+        app_url,
+        banner_image_heor,
+        impact_home_status,
+        impact_home_text,
+        impact_home_link,
+        impact_image,
+    } = usePage().props;
     const appUrl = useMemo(() => (app_url || "").replace(/\/+$/, ""), [app_url]);
-    const withAppUrl = (path) => (appUrl ? `${appUrl}${path}` : path);
+    const withAppUrl = (path) => {
+        if (!path) return "";
+        if (/^(https?:)?\/\//i.test(path) || path.startsWith("#")) return path;
+        const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+        return appUrl ? `${appUrl}${normalizedPath}` : normalizedPath;
+    };
 
     return (
         <div>
             <HeroBanner imageSrc={banner_image_heor} />
             <MissionVision />
-            <WorkersPower />
-            <EoshVictims />
-            <ProjectsCarousel ajaxUrl={withAppUrl("/ajax/sliders?per_page=4")} />
-            <EventsCTA eventsHref={withAppUrl("/Events")} />
+            <JourneyTimeline />
+            {String(impact_home_status ?? "1") !== "0" ? (
+                <OurImpactHome
+                    imageSrc={impact_image}
+                    href={withAppUrl(impact_home_link || "/OurImpact")}
+                    label={impact_home_text || "Our Impact"}
+                />
+            ) : null}
             <PhotoGallerySection
                 ajaxUrl={withAppUrl("/ajax/photo-gallery?per_page=8")}
                 seeMoreHref={withAppUrl("/photo-gallery")}

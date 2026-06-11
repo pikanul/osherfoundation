@@ -669,6 +669,8 @@
 
         var bind_value = should_store_url ? src_img : img_id;
         $(selected_eleemtn).val(bind_value).trigger('input').trigger('change');
+        $(currnet_element_selected).closest('.single-setting-image').find('.single-setting-image-clear').val('0');
+        $(currnet_element_selected).closest('.single-setting-image').find('.single-setting-image-empty').addClass('d-none');
 
         // check image or video
         var extension = src_img.split('.').pop().toLowerCase();

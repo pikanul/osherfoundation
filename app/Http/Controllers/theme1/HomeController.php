@@ -17,6 +17,7 @@ use App\Models\Project;
 use App\Models\ProjectCategory;
 use App\Models\Product;
 use App\Models\Service;
+use App\Models\Setting;
 use App\Models\Slider;
 use App\Models\SubCategory;
 use App\Models\Team;
@@ -33,6 +34,14 @@ class HomeController extends Controller
 
     public function index()
     {
+        [$missionVisionImage, $missionVisionImageId] = settings('mission_vision_image', '171', 1);
+        [$eoshVictimsImage, $eoshVictimsImageId] = settings('eosh_victims_image', '9', 1);
+        [$impactImage, $impactImageId] = settings('impact_image', '303', 1);
+        $journeyTitle = $this->settingValue('journey_title_text', '401', "OSHE's Journey: Footprint & Strategic Progress");
+
+        if (trim($journeyTitle) === 'Strategic Progress') {
+            $journeyTitle = "OSHE's Journey: Footprint & Strategic Progress";
+        }
 
 
         return Inertia::render('Home', [
@@ -41,6 +50,9 @@ class HomeController extends Controller
             'vision_title' => settings('vision_title', '171'),
             'mission' => settings('mission_description', '171'),
             'vision' => settings('vision_description', '171'),
+            'mission_vision_image' => is_numeric($missionVisionImageId) && (int) $missionVisionImageId > 0
+                ? $missionVisionImage
+                : asset('assets/mission-vision/mission-vision-default.png'),
 
             // workers power
             'workpower_title' => settings('workpower_title', '9'),
@@ -49,7 +61,8 @@ class HomeController extends Controller
             // eosh victims
             'eosh_victims_title' => settings('eosh_victims_title', '9'),
             'eosh_victims_description' => settings('eosh_victims_description', '9'),
-            'eosh_victims_image' => settings('eosh_victims_image', '9'),
+            'eosh_victims_image' => $eoshVictimsImage,
+            'eosh_victims_image_id' => $eoshVictimsImageId,
 
             // partner_title
             'partner_title' => settings('partner_title', '201'),
@@ -57,7 +70,29 @@ class HomeController extends Controller
             // slider_title
             'slider_title' => settings('slider_title', '201'),
             'projects_title' => settings('projects_title', '201'),
+            'impact_home_status' => $this->settingValue('impact_home_status', '303', '1'),
+            'impact_home_text' => $this->settingValue('impact_home_text', '303', 'Our Impact'),
+            'impact_home_link' => $this->settingValue('impact_home_link', '303', '/OurImpact'),
+            'impact_image' => is_numeric($impactImageId) && (int) $impactImageId > 0
+                ? $impactImage
+                : asset('assets/impact/our-impact-default.png'),
+
+            // oshe journey timeline
+            'journey_kicker_text' => $this->settingValue('journey_kicker_text', '401', 'Strategic Progress'),
+            'journey_title_text' => $journeyTitle,
+            'journey_timeline_items_text' => $this->settingValue('journey_timeline_items_text', '401', ''),
         ]);
+    }
+
+    protected function settingValue(string $name, string $key, string $default = ''): string
+    {
+        $setting = Setting::where('name', $name)->where('key', $key)->first();
+
+        if (!$setting || trim((string) $setting->value) === '') {
+            return $default;
+        }
+
+        return (string) $setting->value;
     }
 
     public function OSHEStrength()
@@ -73,6 +108,40 @@ class HomeController extends Controller
         return Inertia::render('OrganizationProfile', [
             'organization_profile_description' => settings('org_prof_ile_description', '221'),
             'organization_profile_title' => settings('org_prof_ile_title', '221'),
+        ]);
+    }
+
+    public function OurImpact()
+    {
+        [$impactImage, $impactImageId] = settings('impact_image', '303', 1);
+
+        return Inertia::render('OurImpact', [
+            'impact_image' => is_numeric($impactImageId) && (int) $impactImageId > 0
+                ? $impactImage
+                : asset('assets/impact/our-impact-default.png'),
+        ]);
+    }
+
+    public function career()
+    {
+        return Inertia::render('Career', [
+            'career_public_jobs_status' => $this->settingValue('career_public_jobs_status', '304', '1'),
+            'career_public_jobs_title' => $this->settingValue('career_public_jobs_title', '304', 'Public Jobs'),
+            'career_public_jobs_description' => $this->settingValue(
+                'career_public_jobs_description',
+                '304',
+                'Browse current public job openings and apply through the OSHE HRM portal.'
+            ),
+            'career_public_jobs_link' => $this->settingValue(
+                'career_public_jobs_link',
+                '304',
+                'https://hrm.oshefoundation.com/jobs/openings'
+            ),
+            'career_public_jobs_links_text' => $this->settingValue(
+                'career_public_jobs_links_text',
+                '304',
+                "OSHE HRM | https://hrm.oshefoundation.com/jobs/openings\nBDJobs | https://bdjobs.com/h/details/1495038?ln=1"
+            ),
         ]);
     }
 
@@ -129,11 +198,30 @@ class HomeController extends Controller
 
     public function OurMissionandVision()
     {
+        $setting = function (string $name, string $key, string $fallback) {
+            $value = settings($name, $key);
+            $placeholder = \Illuminate\Support\Str::title(str_replace('_', ' ', $name));
+
+            return $value === $placeholder ? $fallback : $value;
+        };
+        [$missionVisionImage, $missionVisionImageId] = settings('mission_vision_image', '171', 1);
+
         return Inertia::render('OurMissionandVision', [
-                'mission_title' => settings('mission_title', '171'),
-                'vision_title' => settings('vision_title', '171'),
-                'mission' => settings('mission_description', '171'),
-                'vision' => settings('vision_description', '171'),
+            'mission_title' => $setting('mission_title', '171', 'Mission'),
+            'vision_title' => $setting('vision_title', '171', 'Vision'),
+            'mission' => $setting(
+                'mission_description',
+                '171',
+                'To promote and protect the human rights of workers, with a special focus on workplace safety, workers’ health, and environmental protection. OSHE works to eliminate poverty, advance social progress, and build a healthier future for workers by strengthening the capacity, solidarity, and unified voice of the labour movement as a vital contributor to the world of work and sustainable development.'
+            ),
+            'vision' => $setting(
+                'vision_description',
+                '171',
+                'A world of work where every worker enjoys safe, healthy, dignified, and rights-based workplaces, free from hazards, poverty, and discrimination, while contributing to sustainable development and social progress.'
+            ),
+            'mission_vision_image' => is_numeric($missionVisionImageId) && (int) $missionVisionImageId > 0
+                ? $missionVisionImage
+                : asset('assets/mission-vision/mission-vision-default.png'),
         ]);
     }
 
@@ -164,51 +252,7 @@ class HomeController extends Controller
 
     public function newsIndex(Request $request)
     {
-        $keyword = trim((string) $request->query('keyword', ''));
-        $categorySlug = strtolower(trim((string) $request->query('category', '')));
-
-        $categories = NewsCategory::query()
-            ->orderBy('name', 'asc')
-            ->get(['id', 'name', 'slug']);
-
-        $activeCategory = null;
-        if ($categorySlug !== '') {
-            $activeCategory = $categories->first(function ($item) use ($categorySlug) {
-                return strtolower((string) $item->slug) === $categorySlug;
-            });
-        }
-
-        $query = News::query();
-        if ($activeCategory) {
-            $query->where('news_category_id', $activeCategory->id);
-        }
-        if ($keyword !== '') {
-            $query->where(function ($q) use ($keyword) {
-                $q->where('title', 'like', "%{$keyword}%")
-                    ->orWhere('short_descripiton', 'like', "%{$keyword}%")
-                    ->orWhere('long_description', 'like', "%{$keyword}%");
-            });
-        }
-
-        $perPage = 9;
-        $items = $query
-            ->orderBy('publish_date', 'desc')
-            ->orderBy('id', 'desc')
-            ->limit($perPage + 1)
-            ->get();
-
-        $hasMore = $items->count() > $perPage;
-        $items = $items->take($perPage)->values();
-
-        return Inertia::render('News', [
-            'news_categories' => $categories->values(),
-            'active_category_slug' => $activeCategory?->slug,
-            'search_keyword' => $keyword,
-            'initial_news' => $items,
-            'news_has_more' => $hasMore,
-            'news_before_id' => optional($items->last())->id,
-            'news_before_publish_date' => optional($items->last())->publish_date,
-        ]);
+        return Inertia::render('News');
     }
 
     public function ajaxNews(Request $request)
@@ -974,4 +1018,3 @@ class HomeController extends Controller
 
 
 }
-

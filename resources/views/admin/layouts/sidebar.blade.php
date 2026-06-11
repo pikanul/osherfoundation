@@ -243,6 +243,11 @@
                 @endif
             </a>
         </li>
+        <li class="nav-item"><a class="d-flex align-items-center" href="{{ route('admin.partner-inquiries.index') }}"><i
+                    class="fas fa-handshake" aria-hidden="true"></i><span class="menu-title text-truncate"
+                    data-i18n="Home">Partner Inquiries</span>
+            </a>
+        </li>
     @endif
     @if (Auth::hasP('careear'))
         <li class="nav-item"><a class="d-flex align-items-center" href="{{ route('admin.careears.index') }}"><i

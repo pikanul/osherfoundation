@@ -6,7 +6,7 @@
     "remote_version_url": "https://system.likesoftbd.com/api",
     "software_slug": "oshefoundation",
     "check_delay_minutes": 360,
-    "last_checked_at": "2026-06-08 20:13:51",
+    "last_checked_at": "2026-06-11 04:42:14",
     "system_build_number": "N/A",
     "release_channel": "stable",
     "last_update_note": "No release note available.",
@@ -19,5 +19,5 @@
     "last_update": null,
     "last_error": "Update check failed (HTTP 404).",
     "status": "error",
-    "updated_at": "2026-06-08 20:13:51"
+    "updated_at": "2026-06-11 04:42:14"
 }

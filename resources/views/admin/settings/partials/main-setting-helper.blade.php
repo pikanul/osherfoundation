@@ -73,6 +73,10 @@
                                 ? $setting->value
                                 : settings($setting->name, $items->key);
 
+                                if (isset($setting->default) && $settings_value === Str::title(Str::replace('_', ' ', $setting->name))) {
+                                    $settings_value = $setting->default;
+                                }
+
                                 if(isset($setting->theme)){
                                 if(in_array($theme, $setting->theme) == false){
                                 continue;
@@ -108,6 +112,10 @@
                                         @endif
                                     </label>
                                     <br />
+
+                                    @if (isset($setting->note))
+                                    <small class="d-block text-muted mb-1">{{ $setting->note }}</small>
+                                    @endif
 
                                     {{-- For Image --}}
                                     @if ($setting->name === 'banner_image')
@@ -153,7 +161,7 @@
                                     </div>
 
                                     {{-- For Image --}}
-                                    @elseif (collect(['image', 'logo', 'icon'])->contains(fn($word) =>
+                                    @elseif (collect(['image', 'logo', 'icon', 'file'])->contains(fn($word) =>
                                     str_contains($setting->name, $word)))
                                     @php
                                     [$settings_value, $actual_value] = settings(
@@ -165,14 +173,22 @@
 
 
 
-                                    <div class="">
+                                    <div class="single-setting-image">
                                      <label type="button" onclick="upload_select(this)">
                                             <input type="hidden" name="multiple_settings[{{ $setting->name }}]"
                                                 value="{{ $actual_value }}" id="{{ $setting->name.'_id' }}"
-                                                class="form-control mb-2">
+                                                class="form-control mb-2" data-rule-required="false" aria-required="false">
+                                            <input type="hidden" name="clear_settings[{{ $setting->name }}]"
+                                                value="0" class="single-setting-image-clear">
                                             <img style="max-height: 60px; min-height: 40px; min-width: 80px; background: #eee;"
                                                 src="{{ $settings_value }}" alt="">
+                                            <span class="single-setting-image-empty {{ (string) $actual_value === '0' || trim((string) $actual_value) === '' ? '' : 'd-none' }}">
+                                                No image selected
+                                            </span>
                                         </label>
+                                        <button type="button" class="single-setting-image-remove" onclick="clear_single_setting_image(this)">
+                                            Delete
+                                        </button>
                                     </div>
 
                                     {{-- For Color Picker --}}
@@ -282,6 +298,16 @@
 
         container.append(field);
     }
+
+    function clear_single_setting_image(button) {
+        const wrapper = $(button).closest('.single-setting-image');
+        const placeholder = @json(dynamic_asset(0));
+
+        wrapper.find('input[type="hidden"]').val('0');
+        wrapper.find('.single-setting-image-clear').val('1');
+        wrapper.find('img').attr('src', placeholder);
+        wrapper.find('.single-setting-image-empty').removeClass('d-none');
+    }
 </script>
 
 
@@ -332,6 +358,36 @@
 
 .gdesc-inner .gslide-title {
     margin-bottom: 0 !important;
+}
+
+.single-setting-image {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.single-setting-image-remove {
+    border: 1px solid #dc3545;
+    border-radius: 4px;
+    background: #fff;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 9px;
+}
+
+.single-setting-image-remove:hover {
+    background: #dc3545;
+    color: #fff;
+}
+
+.single-setting-image-empty {
+    display: block;
+    color: #6c757d;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 4px;
 }
 </style>
 

@@ -70,13 +70,17 @@ class SettingController extends Controller
             foreach ($request->input('multiple_settings', []) as $key => $items) {
                 try {
                     $existingSetting = Setting::where('name', $key)->where('key', $key_code)->first();
-                    $resolvedValue = $this->resolveSettingValue(
-                        $request,
-                        "multiple_settings.$key",
-                        $key,
-                        $items,
-                        $existingSetting?->value
-                    );
+                    if ((string) $request->input("clear_settings.$key", '0') === '1') {
+                        $resolvedValue = '0';
+                    } else {
+                        $resolvedValue = $this->resolveSettingValue(
+                            $request,
+                            "multiple_settings.$key",
+                            $key,
+                            $items,
+                            $existingSetting?->value
+                        );
+                    }
 
                     setting::updateOrCreate(
                         ['name' => $key, 'key' => $key_code],
@@ -211,7 +215,22 @@ class SettingController extends Controller
             return $this->type_check($settingName, $uploadedFile, $existingValue);
         }
 
+        if ($this->isAssetSetting($settingName) && trim((string) $fallbackValue) === '') {
+            return '0';
+        }
+
         return $fallbackValue;
+    }
+
+    protected function isAssetSetting(string $settingName): bool
+    {
+        foreach (['image', 'file', 'logo', 'icon'] as $keyword) {
+            if (str_contains($settingName, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function clearSettingsCache(): void

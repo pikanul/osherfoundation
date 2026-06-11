@@ -1,31 +1,226 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     Bars3Icon,
+    BookOpenIcon,
+    BriefcaseIcon,
+    CalendarDaysIcon,
     ChevronDownIcon,
+    CursorArrowRaysIcon,
     EnvelopeIcon,
+    HomeIcon,
     MagnifyingGlassIcon,
     PhoneIcon,
+    PlayCircleIcon,
+    UserGroupIcon,
+    UsersIcon,
     XMarkIcon
 } from '@heroicons/react/24/solid';
 
 const validColor = (value, fallback) => (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value || '') ? value : fallback);
 
+const normalizeDefault = (value, fallback, oldDefault) => {
+    const normalized = String(value || '').toLowerCase();
+
+    if (!normalized || normalized === String(oldDefault || '').toLowerCase()) {
+        return fallback;
+    }
+
+    return value;
+};
+
+const defaultMenuItemsText = `Home | /
+- Home Page | /
+About OSHE | /OrganizationProfile
+- Organization Profile | /OrganizationProfile
+- Mission & Vision | /OurMissionandVision
+- OSHE's Core Values | /oshes-core-values
+- National Policy Contributions | /national-policy-contributions
+- Governance Structure | /governance-structure
+- Board of Trustees | /board-of-trustees
+- Executive Team | /executive-team
+- Team OSHE | /TeamOshe
+- Annual Reports | /annual-reports
+What We Do | /what-we-do/occupational-safety-and-health
+- Occupational Safety & Health (OSH) | /what-we-do/occupational-safety-and-health
+- Labour Rights & Decent Work | /what-we-do/labour-rights-decent-work
+- Social Protection | /what-we-do/social-protection
+- Environmental Sustainability | /what-we-do/environmental-sustainability
+- Climate Change & Just Transition | /what-we-do/climate-change-just-transition
+- Trade Union Strengthening | /what-we-do/trade-union-strengthening
+- Research & Advocacy | /what-we-do/research-advocacy
+- Capacity Building & Training | /what-we-do/capacity-building-training
+Sectoral Coverage | /sectoral-coverage
+Thematic Priorities | /thematic-priorities/occupational-safety-health
+Programs & Projects | /OngoingProject
+- Ongoing Projects | /OngoingProject
+- Completed Projects | /PastProject
+- Project Database | /project-database
+- Interactive Bangladesh Project Map | /bangladesh-project-map
+- Project Success Stories | /project-success-stories
+Partners & Donors | /ProjectPartners
+Media & Resource Center | /news
+- All News & Resources | /news
+- Photo Gallery | /photo-gallery
+- Video Gallery | /videos
+- Publications | /news?category=publications
+- Newsletter | /news?category=newsletter
+- Meeting Reports | /news?category=meeting-report
+- Partner Reports | /news?category=partners-report
+- Training Reports | /news?category=training-report
+- Day Observations | /news?category=day-observation
+Career | /career
+- Career Opportunities | /career
+Contact Us | /contact
+- Contact Information | /contact
+- Office Location | /office-location
+- Feedback & Complaints | /feedback-complaints
+- Newsletter Subscription | /newsletter-subscription`;
+
+const menuIcons = {
+    home: HomeIcon,
+    'about oshe': UserGroupIcon,
+    'what we do': BriefcaseIcon,
+    'sectoral coverage': CursorArrowRaysIcon,
+    'thematic priorities': BookOpenIcon,
+    'programs & projects': CalendarDaysIcon,
+    'partners & donors': UsersIcon,
+    'media & resource center': PlayCircleIcon,
+    career: BriefcaseIcon,
+    'contact us': EnvelopeIcon,
+};
+
+const resourceLinkMap = {
+    '/publications': '/news?category=publications',
+    '/newsletter': '/news?category=newsletter',
+    '/meeting-reports': '/news?category=meeting-report',
+    '/partner-reports': '/news?category=partners-report',
+    '/training-reports': '/news?category=training-report',
+    '/day-observations': '/news?category=day-observation',
+};
+
+const normalizeMenuHref = (href) => resourceLinkMap[href] || href;
+
+const ensureRequiredMenuLinks = (items) => items.map((item) => {
+    if (item.label === 'Sectoral Coverage') {
+        return {
+            ...item,
+            href: '/sectoral-coverage',
+            type: 'link',
+            links: [],
+        };
+    }
+
+    if (item.label === 'Thematic Priorities') {
+        return {
+            ...item,
+            type: 'link',
+            links: [],
+        };
+    }
+
+    if (item.label === 'Career') {
+        return {
+            ...item,
+            href: '/career',
+            links: [{ label: 'Career Opportunities', href: '/career' }],
+            type: 'dropdown',
+        };
+    }
+
+    if (item.label === 'Partners & Donors') {
+        return {
+            ...item,
+            href: '/ProjectPartners',
+            type: 'link',
+            links: [],
+        };
+    }
+
+    if (item.label !== 'Media & Resource Center') {
+        return item;
+    }
+
+    const links = item.links || [];
+    const hasAllResources = links.some((link) => link.href === '/news');
+
+    if (hasAllResources) {
+        return item;
+    }
+
+    return {
+        ...item,
+        href: item.href === '/photo-gallery' ? '/news' : item.href,
+        links: [
+            { label: 'All News & Resources', href: '/news' },
+            ...links,
+        ],
+    };
+});
+
+const parseMenuItems = (menuText) => {
+    const items = [];
+
+    String(menuText || defaultMenuItemsText)
+        .split(/\r?\n/)
+        .forEach((rawLine) => {
+            const line = rawLine.trim();
+
+            if (!line || line.startsWith('#')) {
+                return;
+            }
+
+            const isChild = line.startsWith('-');
+            const cleanLine = isChild ? line.replace(/^-\s*/, '') : line;
+            const [labelPart, hrefPart = '#'] = cleanLine.split('|').map((part) => part.trim());
+
+            if (!labelPart) {
+                return;
+            }
+
+            const href = labelPart.toLowerCase() === 'partner with us' && ['/contact', '/ProjectPartners'].includes(hrefPart)
+                ? '/partner-with-us'
+                : hrefPart;
+
+            const link = {
+                label: labelPart,
+                href: normalizeMenuHref(href || '#'),
+            };
+
+            if (isChild && items.length) {
+                items[items.length - 1].links.push(link);
+                return;
+            }
+
+            items.push({
+                ...link,
+                type: 'dropdown',
+                links: [],
+                icon: menuIcons[labelPart.toLowerCase()] || BookOpenIcon,
+            });
+        });
+
+    return ensureRequiredMenuLinks(items.map((item) => ({
+        ...item,
+        type: item.links.length ? 'dropdown' : 'link',
+    })));
+};
+
 const Navbar = () => {
     const { props, url } = usePage();
     const {
-        newsscategories = [],
         app_url,
-        projectcategories = [],
         img,
-        social_links = {},
         app_tagline,
         header_settings = {},
-        pages = []
     } = props;
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [mobileDropdown, setMobileDropdown] = useState(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchKeyword, setSearchKeyword] = useState('');
+    const [openDropdown, setOpenDropdown] = useState(null);
+    const [pinnedDropdown, setPinnedDropdown] = useState(null);
+    const desktopNavRef = useRef(null);
 
     const appUrl = (app_url || '').replace(/\/+$/, '');
     const withAppUrl = (path) => {
@@ -41,52 +236,52 @@ const Navbar = () => {
     };
 
     const headerLogo = header_settings.logo || img;
-    const headerTagline = header_settings.tagline || app_tagline;
-    const topBarColor = validColor(header_settings.top_bar_color, '#064a86');
-    const topTextColor = validColor(header_settings.top_text_color, '#ffffff');
+    const headerTagline = header_settings.tagline || app_tagline || 'Building Safer & Sustainable Workplaces for All';
+    const accentColor = validColor(normalizeDefault(header_settings.top_bar_color, '#008f7a', '#064a86'), '#008f7a');
+    const navBackgroundColor = validColor(normalizeDefault(header_settings.nav_background_color, '#007760', '#ffffff'), '#007760');
+    const navTextColor = validColor(normalizeDefault(header_settings.nav_text_color, '#ffffff', '#0b3769'), '#ffffff');
+    const navActiveColor = validColor(normalizeDefault(header_settings.nav_active_color, '#17b7ad', '#f6f8fb'), '#17b7ad');
+    const taglineColor = validColor(normalizeDefault(header_settings.tagline_color, '#09265c', '#111111'), '#09265c');
     const headerBackgroundColor = validColor(header_settings.background_color, '#ffffff');
-    const taglineColor = validColor(header_settings.tagline_color, '#111111');
-    const navBackgroundColor = validColor(header_settings.nav_background_color, '#ffffff');
-    const navTextColor = validColor(header_settings.nav_text_color, '#0b3769');
-    const navActiveColor = validColor(header_settings.nav_active_color, '#f6f8fb');
 
-    const aboutLinks = [
-        { label: 'Our Mission and Vision', href: '/OurMissionandVision' },
-        { label: 'OSHE Strength', href: '/OSHEStrength' },
-        { label: 'Team OSHE', href: '/TeamOshe' },
-        { label: 'Organization Profile', href: '/OrganizationProfile' },
-        { label: 'Career', href: '/career' },
-        ...pages.map((page) => ({
-            label: page.name,
-            href: `/${page.slug}`
-        }))
+    const navPalette = [
+        { bg: '#ffffff', active: '#e7f7f3', text: '#0f2638' },
     ];
 
-    const projectLinks = [
-        ...projectcategories.map((category) => ({
-            label: `${category.name} Project`,
-            href: `/project/${category.slug}`
-        })),
-        { label: 'Events', href: '/Events' }
-    ];
+    const navItems = parseMenuItems(header_settings.menu_items_text).map((item, index) => ({
+        ...item,
+        color: navPalette[index] || navPalette[navPalette.length - 1],
+    }));
 
-    const mediaLinks = [
-        { label: 'Photo Gallery', href: '/photo-gallery' },
-        { label: 'Video Gallery', href: '/videos' },
-        ...newsscategories.map((category) => ({
-            label: category.name,
-            href: `/news?category=${category.slug}`
-        }))
-    ];
+    const isActive = (path) => {
+        const safePath = String(path || '').split('?')[0];
 
-    const navItemStyle = (path) => ({
-        color: navTextColor,
-        backgroundColor: path === '/' ? (url === '/' ? navActiveColor : 'transparent') : (url.startsWith(path) ? navActiveColor : 'transparent')
-    });
+        return safePath === '/' ? url === '/' : url.startsWith(safePath);
+    };
 
-    const navLinkClass = 'inline-flex h-14 items-center px-5 text-[15px] font-bold transition hover:brightness-95';
-    const dropdownTriggerClass = 'group inline-flex h-14 cursor-pointer items-center gap-1.5 px-5 text-[15px] font-bold transition hover:brightness-95';
-    const dropdownMenuClass = 'absolute left-0 top-full z-30 hidden min-w-72 border border-slate-200 bg-white p-2 text-slate-800 shadow-2xl group-hover:block';
+    useEffect(() => {
+        const closeOnOutsideClick = (event) => {
+            if (!desktopNavRef.current?.contains(event.target)) {
+                setOpenDropdown(null);
+                setPinnedDropdown(null);
+            }
+        };
+
+        const closeOnEscape = (event) => {
+            if (event.key === 'Escape') {
+                setOpenDropdown(null);
+                setPinnedDropdown(null);
+            }
+        };
+
+        document.addEventListener('mousedown', closeOnOutsideClick);
+        document.addEventListener('keydown', closeOnEscape);
+
+        return () => {
+            document.removeEventListener('mousedown', closeOnOutsideClick);
+            document.removeEventListener('keydown', closeOnEscape);
+        };
+    }, []);
 
     const submitSearch = (e) => {
         e.preventDefault();
@@ -100,141 +295,255 @@ const Navbar = () => {
         setMobileOpen(false);
     };
 
-    const Dropdown = ({ label, links }) => (
-        <li className="group relative">
-            <span className={dropdownTriggerClass} style={{ color: navTextColor }}>
-                {label}
-                <ChevronDownIcon className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180" />
+    const ContactItem = ({ icon: Icon, children }) => {
+        if (!children) {
+            return null;
+        }
+
+        return (
+            <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                <Icon className="h-4 w-4" />
+                {children}
             </span>
-            <ul className={dropdownMenuClass}>
-                {links.map((item) => (
-                    <li key={item.href}>
-                        <Link href={withAppUrl(item.href)} className="block px-3 py-2.5 text-[15px] font-semibold transition hover:bg-blue-50 hover:text-blue-900">
-                            {item.label}
+        );
+    };
+
+    const renderTagline = () => {
+        const safeTagline = String(headerTagline || '');
+        const match = safeTagline.match(/^(.*?)\b(Safer\s*&\s*Sustainable)\b(.*)$/i);
+
+        if (!match) {
+            return safeTagline;
+        }
+
+        return (
+            <>
+                {match[1]}
+                <span className="text-[#008f7a]">{match[2]}</span>
+                {match[3]}
+            </>
+        );
+    };
+
+    const Dropdown = ({ item }) => {
+        const Icon = item.icon;
+        const isOpen = openDropdown === item.label;
+        const isDropdownActive = isActive(item.href) || item.links.some((link) => isActive(link.href));
+
+        const toggleDropdown = () => {
+            const nextOpen = isOpen && pinnedDropdown === item.label ? null : item.label;
+
+            setOpenDropdown(nextOpen);
+            setPinnedDropdown(nextOpen);
+        };
+
+        return (
+        <li
+            className={`relative flex min-h-[48px] flex-1 items-stretch ${isDropdownActive ? 'oshe-active-li' : ''}`}
+            onMouseEnter={() => {
+                setOpenDropdown(item.label);
+                setPinnedDropdown((current) => (current === item.label ? current : null));
+            }}
+            onMouseLeave={() => {
+                if (pinnedDropdown !== item.label) {
+                    setOpenDropdown(null);
+                }
+            }}
+        >
+            <div
+                className="oshe-nav-item relative inline-flex min-h-[48px] w-full items-center justify-center gap-1.5 px-2 py-1 text-center text-[12px] font-bold leading-tight transition 2xl:text-[13px]"
+                style={{
+                    color: item.color.text,
+                    backgroundColor: isDropdownActive ? item.color.active : item.color.bg,
+                    boxShadow: isDropdownActive ? `inset 0 -3px 0 ${accentColor}` : undefined,
+                }}
+            >
+                <Link
+                    href={withAppUrl(item.href)}
+                    className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md focus:outline-none focus-visible:ring-4 focus-visible:ring-white/45"
+                    onClick={() => {
+                        setOpenDropdown(null);
+                        setPinnedDropdown(null);
+                    }}
+                >
+                    {Icon && <Icon className="h-4 w-4 shrink-0 text-emerald-700 2xl:h-5 2xl:w-5" />}
+                    <span className="max-w-[118px]">{item.label}</span>
+                </Link>
+                <button
+                    type="button"
+                    onClick={toggleDropdown}
+                    className="inline-flex h-8 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md focus:outline-none focus-visible:ring-4 focus-visible:ring-white/45"
+                    aria-label={`Open ${item.label} submenu`}
+                    aria-haspopup="menu"
+                    aria-expanded={isOpen}
+                >
+                    <ChevronDownIcon className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+            <ul
+                className={`absolute left-0 top-full z-40 min-w-80 rounded-b-md border border-slate-200 bg-white p-2 text-slate-800 shadow-2xl transition duration-200 ${
+                    isOpen ? 'pointer-events-auto visible translate-y-0 opacity-100' : 'pointer-events-none invisible translate-y-2 opacity-0'
+                }`}
+                role="menu"
+            >
+                {item.links.map((link) => (
+                    <li key={link.href}>
+                        <Link
+                            href={withAppUrl(link.href)}
+                            onClick={() => {
+                                setOpenDropdown(null);
+                                setPinnedDropdown(null);
+                            }}
+                            className={`block rounded-md px-3 py-2.5 text-[15px] font-semibold transition hover:bg-emerald-50 hover:text-emerald-900 ${isActive(link.href) ? 'bg-emerald-50 text-emerald-900' : ''}`}
+                            role="menuitem"
+                        >
+                            {link.label}
                         </Link>
                     </li>
                 ))}
             </ul>
         </li>
+        );
+    };
+
+    const DesktopLink = ({ item }) => (
+        <li className={`flex min-h-[48px] flex-1 items-stretch ${isActive(item.href) ? 'oshe-active-li' : ''}`}>
+            <Link
+                href={withAppUrl(item.href)}
+                className="oshe-nav-item relative inline-flex min-h-[48px] w-full items-center justify-center gap-1.5 px-2 py-1 text-center text-[12px] font-bold leading-tight transition 2xl:text-[13px]"
+                style={{
+                    color: item.color.text,
+                    backgroundColor: isActive(item.href) ? item.color.active : item.color.bg,
+                    boxShadow: isActive(item.href) ? `inset 0 -3px 0 ${accentColor}` : undefined,
+                }}
+            >
+                {item.icon && <item.icon className="h-4 w-4 shrink-0 text-emerald-700 2xl:h-5 2xl:w-5" />}
+                <span className="max-w-[118px]">{item.label}</span>
+            </Link>
+        </li>
     );
 
     return (
         <>
-            <header className="relative z-50 border-b border-slate-200 bg-white shadow-sm">
+            <header className="sticky top-0 z-50 bg-white shadow-[0_10px_30px_rgba(15,38,56,0.12)] relative">
                 <div className="hidden xl:block" style={{ backgroundColor: headerBackgroundColor }}>
-                    <div className="grid grid-cols-[330px_1fr] items-stretch">
-                        <Link href={withAppUrl('/')} className="flex min-h-[116px] items-center px-10">
-                            <img className="max-h-24 w-auto object-contain" src={headerLogo} alt="OSHE Foundation" />
-                        </Link>
-
-                        <div className="flex min-w-0 flex-col">
-                            <div
-                                className="ml-auto flex h-[50px] min-w-[58%] items-center justify-end gap-8 px-10 text-sm font-semibold"
-                                style={{
-                                    backgroundColor: topBarColor,
-                                    color: topTextColor,
-                                    clipPath: 'polygon(34px 0, 100% 0, 100% 100%, 0 100%)'
-                                }}
-                            >
-                                {header_settings.phone && (
-                                    <span className="inline-flex items-center gap-2 whitespace-nowrap">
-                                        <PhoneIcon className="h-4 w-4" />
-                                        {header_settings.phone}
-                                    </span>
-                                )}
-                                {header_settings.email && (
-                                    <span className="inline-flex items-center gap-2 whitespace-nowrap">
-                                        <EnvelopeIcon className="h-4 w-4" />
-                                        {header_settings.email}
-                                    </span>
-                                )}
+                    <div className="oshe-top-strip" style={{ background: `linear-gradient(90deg, ${navBackgroundColor}, ${accentColor})` }}>
+                        <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-between gap-4 px-6 text-sm font-semibold text-white">
+                            <div className="flex min-w-0 items-center gap-5">
+                                <ContactItem icon={PhoneIcon}>{header_settings.phone}</ContactItem>
+                                <ContactItem icon={EnvelopeIcon}>{header_settings.email}</ContactItem>
+                            </div>
+                            <div className="flex items-center gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setSearchOpen((prev) => !prev)}
-                                    className="inline-flex items-center gap-2 whitespace-nowrap"
-                                    style={{ color: topTextColor }}
+                                    className="inline-flex h-8 items-center gap-2 rounded-md border border-white/25 px-3 text-sm transition hover:bg-white/12 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/35"
+                                    aria-label="Search"
                                 >
-                                    {searchOpen ? <XMarkIcon className="h-5 w-5" /> : <MagnifyingGlassIcon className="h-5 w-5" />}
-                                    {header_settings.search_text || 'Search'}
+                                    {searchOpen ? <XMarkIcon className="h-4 w-4" /> : <MagnifyingGlassIcon className="h-4 w-4" />}
+                                    <span>{header_settings.search_text || 'Search'}</span>
                                 </button>
-                                <span className="h-5 w-px bg-white/35" />
-                                <Link
-                                    href={withAppUrl(header_settings.partner_button_link || '/ProjectPartners')}
-                                    className="whitespace-nowrap text-base font-medium"
-                                    style={{ color: topTextColor }}
-                                >
-                                    {header_settings.partner_button_text || 'Partner With Us'}
-                                </Link>
+                                {header_settings.partner_button_text && (
+                                    <Link
+                                        href={withAppUrl(header_settings.partner_button_link || '/partner-with-us')}
+                                        className="inline-flex h-8 items-center rounded-md bg-white px-4 text-sm font-extrabold text-emerald-800 shadow-sm transition hover:bg-emerald-50"
+                                    >
+                                        {header_settings.partner_button_text}
+                                    </Link>
+                                )}
                             </div>
+                        </div>
+                    </div>
 
-                            <div className="flex flex-1 items-center justify-end px-10">
-                                <p className="text-right text-[30px] font-medium leading-tight tracking-normal" style={{ color: taglineColor }}>
-                                    {headerTagline}
+                    <div className="oshe-header-scene">
+                        <div className="mx-auto flex h-[92px] max-w-[1440px] items-center gap-7 px-6">
+                            <Link
+                                href={withAppUrl('/')}
+                                className="relative z-10 flex h-full w-[330px] shrink-0 items-center"
+                            >
+                                <img
+                                    className="h-[86px] w-full object-contain object-left"
+                                    src={headerLogo}
+                                    alt="OSHE Foundation"
+                                />
+                            </Link>
+
+                            <span className="h-[58px] w-px shrink-0 bg-emerald-700/20" aria-hidden="true" />
+
+                            <div className="relative z-10 flex min-w-0 flex-1 flex-col items-end justify-center text-right">
+                                <p className="text-right text-[30px] font-black leading-tight tracking-normal" style={{ color: taglineColor }}>
+                                    {renderTagline()}
+                                </p>
+                                <p className="mt-2 max-w-4xl text-right text-sm font-semibold leading-5 text-slate-500">
+                                    Occupational safety, health, rights and sustainable workplaces for workers across Bangladesh.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <nav className="border-t border-slate-200" style={{ backgroundColor: navBackgroundColor }}>
-                        <ul className="mx-auto flex max-w-full items-center justify-between text-sm">
-                            <li>
-                                <Link href={withAppUrl('/')} className={navLinkClass} style={navItemStyle('/')}>
-                                    {header_settings.nav_home_text || 'Home'}
-                                </Link>
-                            </li>
-                            <Dropdown label={header_settings.nav_about_text || 'About OSHE'} links={aboutLinks} />
-                            <Dropdown label={header_settings.nav_work_text || 'Our Work'} links={projectLinks} />
-                            <Dropdown label={header_settings.nav_programs_text || 'Programs & Projects'} links={projectLinks} />
-                            <Dropdown label={header_settings.nav_research_text || 'Research & Publications'} links={mediaLinks} />
-                            <Dropdown label={header_settings.nav_media_text || 'Media Center'} links={mediaLinks} />
-                            <li>
-                                <Link href={withAppUrl('/ProjectPartners')} className={navLinkClass} style={navItemStyle('/ProjectPartners')}>
-                                    {header_settings.nav_partners_text || 'Partners'}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href={withAppUrl('/news')} className={navLinkClass} style={navItemStyle('/news')}>
-                                    {header_settings.nav_news_events_text || 'News & Events'}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href={withAppUrl('/contact')} className={navLinkClass} style={navItemStyle('/contact')}>
-                                    {header_settings.nav_contact_text || 'Contact Us'}
-                                </Link>
-                            </li>
-                        </ul>
+                    <nav
+                        ref={desktopNavRef}
+                        className="relative z-20 border-y border-slate-200 bg-white"
+                        style={{ background: '#ffffff' }}
+                    >
+                        <div className="mx-auto max-w-[1440px] px-4">
+                            <ul className="flex min-h-[48px] items-stretch justify-between">
+                                {navItems.map((item) => (
+                                    item.type === 'dropdown'
+                                        ? <Dropdown key={item.label} item={item} />
+                                        : <DesktopLink key={item.href} item={item} />
+                                ))}
+                            </ul>
+                        </div>
                     </nav>
                 </div>
 
-                <div className="flex items-center justify-between px-4 py-3 xl:hidden" style={{ backgroundColor: headerBackgroundColor }}>
-                    <Link href={withAppUrl('/')} className="inline-flex items-center">
-                        <img className="max-h-16 w-auto" src={headerLogo} alt="OSHE Foundation" />
-                    </Link>
-                    <button
-                        type="button"
-                        onClick={() => setMobileOpen((prev) => !prev)}
-                        className="inline-flex h-10 w-10 items-center justify-center"
-                        style={{ color: navTextColor }}
-                        aria-label="Toggle menu"
-                        aria-expanded={mobileOpen}
-                    >
-                        <Bars3Icon className="h-7 w-7" />
-                    </button>
+                <div className="xl:hidden" style={{ backgroundColor: headerBackgroundColor }}>
+                    <div className="oshe-header-scene flex min-h-[88px] items-center justify-between gap-4 px-4">
+                        <Link href={withAppUrl('/')} className="relative z-10 inline-flex min-w-0 items-center">
+                            <img className="max-h-14 w-auto object-contain" src={headerLogo} alt="OSHE Foundation" />
+                        </Link>
+                        <div className="relative z-10 flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setSearchOpen((prev) => !prev)}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-emerald-100 bg-white/80 text-emerald-800 shadow-sm"
+                                aria-label="Search"
+                            >
+                                {searchOpen ? <XMarkIcon className="h-5 w-5" /> : <MagnifyingGlassIcon className="h-5 w-5" />}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMobileOpen((prev) => !prev)}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-md text-white shadow-sm"
+                                style={{ backgroundColor: accentColor }}
+                                aria-label="Toggle menu"
+                                aria-expanded={mobileOpen}
+                            >
+                                <Bars3Icon className="h-6 w-6" />
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        className="h-2"
+                        style={{ background: `linear-gradient(90deg, ${navBackgroundColor}, ${accentColor})` }}
+                    />
                 </div>
 
                 {searchOpen && (
-                    <div className="absolute left-0 top-full z-40 hidden w-full border-t border-slate-200 bg-[#f4f7fa] py-8 shadow-md xl:block">
-                        <form onSubmit={submitSearch} className="mx-auto flex w-full max-w-[720px]">
+                    <div className="absolute left-0 top-full z-40 w-full border-t border-slate-200 bg-white/95 px-4 py-5 shadow-md backdrop-blur">
+                        <form onSubmit={submitSearch} className="mx-auto flex w-full max-w-[760px]">
                             <input
                                 type="text"
                                 value={searchKeyword}
                                 onChange={(e) => setSearchKeyword(e.target.value)}
                                 placeholder={header_settings.search_text || 'Search'}
-                                className="h-12 w-full border border-[#9cb0c0] bg-white px-4 text-base text-slate-700 outline-none focus:border-[#064a86]"
+                                className="h-12 w-full rounded-l-md border border-slate-300 bg-white px-4 text-base text-slate-700 outline-none focus:border-emerald-700"
                             />
                             <button
                                 type="submit"
-                                className="inline-flex h-12 w-12 items-center justify-center border border-l-0 border-[#9cb0c0] bg-white text-[#064a86]"
+                                className="inline-flex h-12 w-14 items-center justify-center rounded-r-md border border-l-0 border-slate-300 text-white"
+                                style={{ backgroundColor: navBackgroundColor }}
                                 aria-label="Submit search"
                             >
                                 <MagnifyingGlassIcon className="h-6 w-6" />
@@ -253,85 +562,143 @@ const Navbar = () => {
                 />
 
                 <aside
-                    className={`absolute right-0 top-0 h-full w-[88%] max-w-sm overflow-y-auto border-l border-blue-900/20 bg-white shadow-2xl transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                    className={`absolute right-0 top-0 h-full w-[88%] max-w-sm overflow-y-auto border-l border-emerald-900/20 bg-white shadow-2xl transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}
                     role="dialog"
                     aria-modal="true"
                     aria-label="Mobile navigation"
                 >
                     <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-                        <p className="text-sm font-bold uppercase tracking-wide" style={{ color: navTextColor }}>Menu</p>
+                        <img className="max-h-12 w-auto object-contain" src={headerLogo} alt="OSHE Foundation" />
                         <button
                             type="button"
                             onClick={() => setMobileOpen(false)}
-                            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-bold text-slate-700"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-700"
+                            aria-label="Close menu"
                         >
-                            Close
+                            <XMarkIcon className="h-5 w-5" />
                         </button>
                     </div>
 
-                    <div className="p-4">
-                        <form onSubmit={submitSearch} className="mb-5 flex">
-                            <input
-                                type="text"
-                                value={searchKeyword}
-                                onChange={(e) => setSearchKeyword(e.target.value)}
-                                placeholder={header_settings.search_text || 'Search'}
-                                className="h-12 w-full border border-[#9cb0c0] bg-[#f4f7fa] px-4 text-base text-slate-700 outline-none focus:border-[#064a86]"
-                            />
-                            <button
-                                type="submit"
-                                className="inline-flex h-12 w-12 items-center justify-center border border-l-0 border-[#9cb0c0] bg-[#f4f7fa]"
-                                style={{ color: navTextColor }}
-                                aria-label="Submit search"
-                            >
-                                <MagnifyingGlassIcon className="h-6 w-6" />
-                            </button>
-                        </form>
+                    <div className="border-b border-slate-200 px-4 py-4 bg-emerald-50">
+                        <p className="text-sm font-bold leading-6" style={{ color: taglineColor }}>{headerTagline}</p>
+                        <div className="mt-3 space-y-2 text-sm font-semibold text-emerald-900">
+                            <ContactItem icon={PhoneIcon}>{header_settings.phone}</ContactItem>
+                            <ContactItem icon={EnvelopeIcon}>{header_settings.email}</ContactItem>
+                        </div>
+                    </div>
 
-                        <ul className="space-y-2 text-sm font-semibold" style={{ color: navTextColor }}>
-                            <li><Link href={withAppUrl('/')} className="block rounded-md px-3 py-2 hover:bg-blue-100">{header_settings.nav_home_text || 'Home'}</Link></li>
-                            <li className="rounded-md border border-slate-200 p-2">
-                                <p className="px-1 pb-1 text-xs font-bold uppercase tracking-wide">{header_settings.nav_about_text || 'About OSHE'}</p>
-                                <ul className="space-y-1">
-                                    {aboutLinks.map((item) => (
-                                        <li key={item.href}>
-                                            <Link href={withAppUrl(item.href)} className="block rounded-md px-3 py-2 hover:bg-blue-100">{item.label}</Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </li>
-                            <li className="rounded-md border border-slate-200 p-2">
-                                <p className="px-1 pb-1 text-xs font-bold uppercase tracking-wide">{header_settings.nav_programs_text || 'Programs & Projects'}</p>
-                                <ul className="space-y-1">
-                                    {projectLinks.map((item) => (
-                                        <li key={item.href}>
-                                            <Link href={withAppUrl(item.href)} className="block rounded-md px-3 py-2 hover:bg-blue-100">{item.label}</Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </li>
-                            <li className="rounded-md border border-slate-200 p-2">
-                                <p className="px-1 pb-1 text-xs font-bold uppercase tracking-wide">{header_settings.nav_media_text || 'Media Center'}</p>
-                                <ul className="space-y-1">
-                                    {mediaLinks.map((item) => (
-                                        <li key={item.href}>
-                                            <Link href={withAppUrl(item.href)} className="block rounded-md px-3 py-2 hover:bg-blue-100">{item.label}</Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </li>
-                            <li><Link href={withAppUrl('/ProjectPartners')} className="block rounded-md px-3 py-2 hover:bg-blue-100">{header_settings.nav_partners_text || 'Partners'}</Link></li>
-                            <li><Link href={withAppUrl('/news')} className="block rounded-md px-3 py-2 hover:bg-blue-100">{header_settings.nav_news_events_text || 'News & Events'}</Link></li>
-                            <li><Link href={withAppUrl('/contact')} className="block rounded-md px-3 py-2 hover:bg-blue-100">{header_settings.nav_contact_text || 'Contact Us'}</Link></li>
-                            <li>
-                                <Link href={withAppUrl(header_settings.partner_button_link || '/ProjectPartners')} className="mt-3 block rounded-md px-3 py-2 text-white" style={{ backgroundColor: topBarColor }}>
-                                    {header_settings.partner_button_text || 'Partner With Us'}
-                                </Link>
-                            </li>
+                    <div className="p-4">
+                        <ul className="space-y-2 text-sm font-semibold text-slate-800">
+                            {navItems.map((item) => {
+                                const isItemOpen = mobileDropdown === item.label;
+                                const itemActive = isActive(item.href) || item.links?.some((link) => isActive(link.href));
+                                const Icon = item.icon;
+
+                                return (
+                                <li key={item.label} className="overflow-hidden rounded-md border border-slate-200 bg-white">
+                                    {item.type === 'dropdown' ? (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => setMobileDropdown((current) => (current === item.label ? null : item.label))}
+                                                className={`flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition ${itemActive ? 'bg-emerald-50 text-emerald-900' : 'hover:bg-emerald-50'}`}
+                                                aria-expanded={isItemOpen}
+                                            >
+                                                <span className="inline-flex min-w-0 items-center gap-2">
+                                                    {Icon && <Icon className="h-5 w-5 shrink-0 text-emerald-700" />}
+                                                    <span>{item.label}</span>
+                                                </span>
+                                                <ChevronDownIcon className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isItemOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            <ul className={`grid transition-[grid-template-rows] duration-200 ${isItemOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                                                <li className="overflow-hidden">
+                                                    <div className="space-y-1 border-t border-slate-100 p-2">
+                                                        {item.links.map((link) => (
+                                                            <Link
+                                                                key={link.href}
+                                                                href={withAppUrl(link.href)}
+                                                                onClick={() => setMobileOpen(false)}
+                                                                className={`block rounded-md px-3 py-2.5 transition hover:bg-emerald-50 ${isActive(link.href) ? 'bg-emerald-50 text-emerald-900' : ''}`}
+                                                            >
+                                                                {link.label}
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                </li>
+                                            </ul>
+                                        </>
+                                    ) : (
+                                        <Link
+                                            href={withAppUrl(item.href)}
+                                            onClick={() => setMobileOpen(false)}
+                                            className={`flex items-center gap-2 px-3 py-3 transition hover:bg-emerald-50 ${itemActive ? 'bg-emerald-50 text-emerald-900' : ''}`}
+                                        >
+                                            {Icon && <Icon className="h-5 w-5 shrink-0 text-emerald-700" />}
+                                            {item.label}
+                                        </Link>
+                                    )}
+                                </li>
+                                );
+                            })}
                         </ul>
                     </div>
                 </aside>
             </div>
+
+            <style>{`
+                .oshe-top-strip {
+                    border-top: 1px solid rgba(255, 255, 255, 0.18);
+                }
+
+                .oshe-header-scene {
+                    position: relative;
+                    overflow: hidden;
+                    background:
+                        linear-gradient(90deg, rgba(0, 143, 122, 0.08), transparent 28%),
+                        linear-gradient(180deg, rgba(250, 253, 252, 0.96), rgba(255, 255, 255, 1));
+                }
+
+                .oshe-header-scene::before {
+                    content: "";
+                    position: absolute;
+                    inset: 0 0 auto;
+                    height: 4px;
+                    background:
+                        linear-gradient(90deg, rgba(0, 143, 122, 0.95), rgba(23, 183, 173, 0.7), rgba(141, 198, 63, 0.85));
+                }
+
+                .oshe-header-scene::after {
+                    content: "";
+                    position: absolute;
+                    right: -120px;
+                    top: -180px;
+                    width: 420px;
+                    height: 420px;
+                    border-radius: 999px;
+                    opacity: 0.16;
+                    background:
+                        radial-gradient(circle, rgba(0, 143, 122, 0.95), transparent 66%);
+                }
+
+                .oshe-nav-item {
+                    border-left: 1px solid rgba(15, 38, 56, 0.08);
+                    text-shadow: none;
+                }
+
+                .oshe-nav-item:hover {
+                    background: #f0faf7 !important;
+                    color: #006d5a !important;
+                }
+
+                .oshe-active-li {
+                    position: relative;
+                    z-index: 1;
+                }
+
+                .oshe-active-li .oshe-nav-item {
+                    font-weight: 950;
+                }
+            `}</style>
         </>
     );
 };

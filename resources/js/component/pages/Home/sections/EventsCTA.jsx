@@ -92,7 +92,7 @@ function getEventDateStatus(startDate, endDate) {
     };
 }
 
-export default function EventsCTA({ eventsHref = "/events" }) {
+export default function EventsCTA({ eventsHref = "/news" }) {
     const [items, setItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
